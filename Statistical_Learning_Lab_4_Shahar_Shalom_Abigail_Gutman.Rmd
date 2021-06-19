@@ -1,0 +1,150 @@
+---
+title: "Statistical learning lab 4 - Classification"
+author: 'Abigail Gutman and Shahar Shalom '
+date: "29/6/2021"
+output: html_document
+---
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+options(scipen = 999)
+
+library(ggplot2)
+library(dplyr)
+library(tidyverse)
+library(readr)
+library(readxl)
+library(glmnet)
+library(grid)
+library(gridExtra)
+library(cowplot)
+library(xgboost)
+```
+
+
+# **Classification Lab**
+
+We will try to classify handwritten digits in 28x28 greyscale values by their digit. The images are from the
+MNIST dataset; you can (and should) read more about the dataset here: http://yann.lecun.com/exdb/mnist/.
+
+For your convenience, I have supplied a script (written by Prof. David Dalpiaz from UIUC) that downloads
+the data and prepares it for R. load MNIST.R
+
+Your goal is to build a classifier for telling apart the digit 8 from the digit 3. The data includes all digits,
+so first separate the required digits from the training set and the test set. Please use only the 4000 images
+from the training set for fitting.
+
+## prep: 
+```{r}
+# modification of https://gist.github.com/brendano/39760
+# automatically obtains data from the web
+# creates two data frames, test and train
+# labels are stored in the y variables of each data frame
+# can easily train many models using formula `y ~ .` syntax
+
+# download data from http://yann.lecun.com/exdb/mnist/
+download.file("http://yann.lecun.com/exdb/mnist/train-images-idx3-ubyte.gz",
+              "train-images-idx3-ubyte.gz")
+download.file("http://yann.lecun.com/exdb/mnist/train-labels-idx1-ubyte.gz",
+              "train-labels-idx1-ubyte.gz")
+download.file("http://yann.lecun.com/exdb/mnist/t10k-images-idx3-ubyte.gz",
+              "t10k-images-idx3-ubyte.gz")
+download.file("http://yann.lecun.com/exdb/mnist/t10k-labels-idx1-ubyte.gz",
+              "t10k-labels-idx1-ubyte.gz")
+
+# gunzip the files
+R.utils::gunzip("train-images-idx3-ubyte.gz")
+R.utils::gunzip("train-labels-idx1-ubyte.gz")
+R.utils::gunzip("t10k-images-idx3-ubyte.gz")
+R.utils::gunzip("t10k-labels-idx1-ubyte.gz")
+
+# helper function for visualization
+show_digit = function(arr784, col = gray(12:1 / 12), ...) {
+  image(matrix(as.matrix(arr784[-785]), nrow = 28)[, 28:1], col = col, ...)
+}
+
+# load image files
+load_image_file = function(filename) {
+  ret = list()
+  f = file(filename, 'rb')
+  readBin(f, 'integer', n = 1, size = 4, endian = 'big')
+  n    = readBin(f, 'integer', n = 1, size = 4, endian = 'big')
+  nrow = readBin(f, 'integer', n = 1, size = 4, endian = 'big')
+  ncol = readBin(f, 'integer', n = 1, size = 4, endian = 'big')
+  x = readBin(f, 'integer', n = n * nrow * ncol, size = 1, signed = FALSE)
+  close(f)
+  data.frame(matrix(x, ncol = nrow * ncol, byrow = TRUE))
+}
+
+# load label files
+load_label_file = function(filename) {
+  f = file(filename, 'rb')
+  readBin(f, 'integer', n = 1, size = 4, endian = 'big')
+  n = readBin(f, 'integer', n = 1, size = 4, endian = 'big')
+  y = readBin(f, 'integer', n = n, size = 1, signed = FALSE)
+  close(f)
+  y
+}
+
+# load images
+train = load_image_file("train-images-idx3-ubyte")
+test  = load_image_file("t10k-images-idx3-ubyte")
+
+# load labels
+train$y = as.factor(load_label_file("train-labels-idx1-ubyte"))
+test$y  = as.factor(load_label_file("t10k-labels-idx1-ubyte"))
+
+# view test image
+#show_digit(train[10000, ])
+```
+
+## Q1:
+
+I’d like you to compare two methods, each from a different classifier family (e.g. Classification trees,
+Bayesian classifiers, linear discriminants, etc). You can use as features the raw pixel values (0 for white
+to 255 for black). 
+Explain your decisions in specifying the penalty and any hyper-parameters, and
+in choosing the threshold.
+
+נרצה להשוות בין שתי שיטות שונות של קלסיפיקציה, 
+```{r}
+
+```
+
+## Q2:
+
+Write your own function that calculates (a) the confusion matrix (b) the precision and (c) the recall
+(assume the class 3 is positive). Calculate the values for both classifiers. Do you observe overfitting of
+the classifier?
+
+```{r}
+
+```
+
+## Q3:
+
+Write your own function that draws a response operating curve (ROC). Draw ROCs for both classifiers
+
+```{r}
+
+```
+
+## Q4:
+
+For one of your classifiers, display four examples that were classified incorrectly. Can you see what
+made these examples hard for the classifier?
+
+```{r}
+
+```
+
+## Q5:
+
+Here is an image of a white digit (the digit 3) on a dark background. Do you expect both of your fitted
+classifiers to work well on this image? Why or why not?
+[Hint: Think how would this image be coded into numbers? what would happen if you try to classify
+using your method?]
+
+```{r}
+
+```
+
