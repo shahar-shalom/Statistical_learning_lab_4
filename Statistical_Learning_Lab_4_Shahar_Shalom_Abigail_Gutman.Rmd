@@ -18,6 +18,8 @@ library(grid)
 library(gridExtra)
 library(cowplot)
 library(xgboost)
+library(caret)
+library(rsample) 
 ```
 
 
@@ -107,6 +109,16 @@ in choosing the threshold.
 
 נרצה להשוות בין שתי שיטות שונות של קלסיפיקציה, 
 ```{r}
+# use only 4000 for training. train on the same proportion of y
+set.seed(1342)
+train_sampling <- initial_split(train,prop=1/15, strata="y")
+train4000 <- training(train_sampling)
+
+```
+
+
+```{r}
+
 
 ```
 
