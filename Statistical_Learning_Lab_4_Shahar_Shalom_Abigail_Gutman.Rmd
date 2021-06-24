@@ -63,6 +63,10 @@ R.utils::gunzip("t10k-labels-idx1-ubyte.gz")
 show_digit = function(arr784, col = gray(12:1 / 12), ...) {
   image(matrix(as.matrix(arr784[-785]), nrow = 28)[, 28:1], col = col, ...)
 }
+```
+
+
+```{r}
 
 # load image files
 load_image_file = function(filename) {
@@ -122,8 +126,8 @@ set.seed(1342)
 train_sampling <- initial_split(train,prop=4000/length(train[,1]), strata="y")
 train_sampling$id
 train4000 <- training(train_sampling)
-train4000$y <- factor(train4000$y)
-test$y <- factor(test$y)
+train4000$y <- factor(make.names(train4000$y))
+test$y <- factor(make.names(test$y))
 
 #train4000 %>% group_by(y) %>% count()
 
@@ -132,7 +136,8 @@ test$y <- factor(test$y)
 ###Model 1 : Naive bayes classifier model
 ```{r}
 # estimating G from the data #presntaion 11a # check kernel, and band # non-parmetric
-naive_bayes_model <- train(y ~., data = train4000 ,method = 'naive_bayes')
+naive_bayes_model <- train(y ~., data = train4000 ,method = 'naive_bayes',
+                           trControl = trainControl(classProbs = TRUE,savePredictions= "final"))
 
 preds_naive_bayes <- predict(naive_bayes_model, newdata = test)
 
@@ -143,7 +148,8 @@ preds_naive_bayes <- predict(naive_bayes_model, newdata = test)
 ```{r}
 
 gbm_model_hyperparmeters <- train(y ~ ., data = train4000, method = 'xgbTree',
-                                  trControl = trainControl("cv", number = 3))
+                                  trControl = trainControl("cv", number = 3,
+                                                           classProbs = TRUE,savePredictions= "final"))
 gbm_model_hyperparmeters$bestTune
 ```
 
@@ -160,16 +166,16 @@ the classifier?
 
 ```{r}
 confusion_matrix_fun <- function(Y,Yhat){
-  Negative_line <- Yhat[which(Y == 8)]
-  Postive_line <- Yhat[which(Y == 3)]
-  Negative_line <- c(sum(Negative_line == 8),
-                     sum(Negative_line == 3),
-                     sum(Negative_line == 8)/length(Negative_line),
-                     sum(Negative_line == 3)/length(Negative_line))
-  Postive_line <- c(sum(Postive_line == 8),
-                     sum(Postive_line == 3),
-                     sum(Postive_line == 8)/length(Postive_line),
-                     sum(Postive_line == 3)/length(Postive_line))
+  Negative_line <- Yhat[which(Y == 'X8')]
+  Postive_line <- Yhat[which(Y == 'X3')]
+  Negative_line <- c(sum(Negative_line == 'X8'),
+                     sum(Negative_line == 'X3'),
+                     sum(Negative_line == 'X8')/length(Negative_line),
+                     sum(Negative_line == 'X3')/length(Negative_line))
+  Postive_line <- c(sum(Postive_line == 'X8'),
+                     sum(Postive_line == 'X3'),
+                     sum(Postive_line == 'X8')/length(Postive_line),
+                     sum(Postive_line == 'X3')/length(Postive_line))
   
   
   confus <- rbind(Negative_line,Postive_line)
@@ -202,6 +208,17 @@ confusion_matrix_fun(test$y,preds_naive_bayes)
 Write your own function that draws a response operating curve (ROC). Draw ROCs for both classifiers
 
 ```{r}
+Roc_plot <- function(model,title){
+  t <- thresholder(model, threshold = seq(0,1,by = 0.05))
+  g <- ggplot(t, aes(y = Sensitivity,x = 1-Specificity)) + geom_line() + labs(title = title, subtitle = "Manual computing by intervals of 0.05")
+  return(g)
+}
+Roc_plot(gbm_model_hyperparmeters,"ROC for Gardient Boosting Model")
+```
+
+```{r}
+
+Roc_plot(naive_bayes_model,"ROC for naive bayes Model")
 
 ```
 
