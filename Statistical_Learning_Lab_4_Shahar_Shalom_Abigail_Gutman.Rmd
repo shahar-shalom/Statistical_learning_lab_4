@@ -151,10 +151,6 @@ gbm_model_hyperparmeters$bestTune
 pred_gbm_model <- predict(gbm_model_hyperparmeters,test)
 ```
 
-```{r}
-gbm_model <- train(y ~ ., data = train4000, method = 'gbm',n.trees = 50,interaction.depth = 1)
-
-```
 
 ## Q2:
 
@@ -163,7 +159,42 @@ Write your own function that calculates (a) the confusion matrix (b) the precisi
 the classifier?
 
 ```{r}
+confusion_matrix_fun <- function(Y,Yhat){
+  Negative_line <- Yhat[which(Y == 8)]
+  Postive_line <- Yhat[which(Y == 3)]
+  Negative_line <- c(sum(Negative_line == 8),
+                     sum(Negative_line == 3),
+                     sum(Negative_line == 8)/length(Negative_line),
+                     sum(Negative_line == 3)/length(Negative_line))
+  Postive_line <- c(sum(Postive_line == 8),
+                     sum(Postive_line == 3),
+                     sum(Postive_line == 8)/length(Postive_line),
+                     sum(Postive_line == 3)/length(Postive_line))
+  
+  
+  confus <- rbind(Negative_line,Postive_line)
+  colnames(confus) <- c("Negtive (8)","Postive (3)","% Negtive Prediction (8)"," % Postive Prediction (3)")
+  row.names(confus) <- c("Negtive (8)","Postive (3)")
+  Pr <- confus[2,2] / sum(confus[,2])
+  Re <- confus[2,2] / sum(confus[2,])
+  Ja <- confus[2,2] / (confus[1,2] + confus[1,1] + confus[2,1])
+  Se <- confus[2,2] / (confus[2,2] + confus[2,1]) # TP / TP+FN
+  sp <- confus[1,1] / (confus[1,1] + confus[1,2]) # TN/ TN+FP
+  
+  return(list(confusion = confus ,Sensitivity= Se,
+              Specificity=sp, precision = Pr,recall = Re, JacardIndex = Ja))
+}
 
+```
+
+```{r}
+#Gardiante boosting No overfiting
+confusion_matrix_fun(test$y,pred_gbm_model)
+```
+
+```{r}
+#Naive bayes # The important class been detcted less
+confusion_matrix_fun(test$y,preds_naive_bayes)
 ```
 
 ## Q3:
