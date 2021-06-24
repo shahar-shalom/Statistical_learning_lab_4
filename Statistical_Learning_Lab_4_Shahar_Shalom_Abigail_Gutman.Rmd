@@ -110,10 +110,13 @@ in choosing the threshold.
 נרצה להשוות בין שתי שיטות שונות של קלסיפיקציה, 
 ```{r}
 # use only 4000 for training. train on the same proportion of y
-test <- test %>% filter(y %in% list(3,8))
-test[1:784,] <- test[1:784,]/255
-train <- train %>% filter(y %in% list(3,8))
-train[1:784,] <- train[1:784,]/255
+zero_var <- round(apply(train[,-785],2,var),5)
+zero_var <- zero_var != 0
+p <- c(which(zero_var == T),785)
+test <- test[,p] %>% filter(y %in% list(3,8))
+test[1:784,] <- test[1:784,]
+train <- train[,p] %>% filter(y %in% list(3,8))
+train[1:784,] <- train[1:784,]
 train$y <- as.factor(train$y)
 set.seed(1342)
 train_sampling <- initial_split(train,prop=4000/length(train[,1]), strata="y")
@@ -124,7 +127,6 @@ test$y <- factor(test$y)
 
 #train4000 %>% group_by(y) %>% count()
 
-tr <- rbind(train4000[1:50,],train4000[3948:3998,])
 ```
 
 ###Model 1 : Naive bayes classifier model
@@ -137,9 +139,20 @@ preds_naive_bayes <- predict(naive_bayes_model, newdata = test)
 ```
 
 
-###Model 2 : glm logistic model
+###Model 2 : gardient boosting - classifiar
 ```{r}
 
+gbm_model_hyperparmeters <- train(y ~ ., data = train4000, method = 'xgbTree',
+                                  trControl = trainControl("cv", number = 3))
+gbm_model_hyperparmeters$bestTune
+```
+
+```{r}
+pred_gbm_model <- predict(gbm_model_hyperparmeters,test)
+```
+
+```{r}
+gbm_model <- train(y ~ ., data = train4000, method = 'gbm',n.trees = 50,interaction.depth = 1)
 
 ```
 
