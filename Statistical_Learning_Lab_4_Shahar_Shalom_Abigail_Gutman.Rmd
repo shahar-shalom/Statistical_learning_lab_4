@@ -228,6 +228,7 @@ For one of your classifiers, display four examples that were classified incorrec
 made these examples hard for the classifier?
 
 ```{r}
+incorrectly_naive_bayes <- sample_n(test[-which(test$y == preds_naive_bayes),],4)
 
 ```
 
