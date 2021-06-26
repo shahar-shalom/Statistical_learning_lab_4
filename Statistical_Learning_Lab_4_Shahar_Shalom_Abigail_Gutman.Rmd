@@ -229,6 +229,28 @@ made these examples hard for the classifier?
 
 ```{r}
 incorrectly_naive_bayes <- sample_n(test[-which(test$y == preds_naive_bayes),],4)
+incorrectly_naive_bayes
+incorrectly_naive_bayes$y
+```
+
+Naive Bayes classifier assumes the features are independent, the probabilities are incorrect if this assumption is not correct.
+
+We work on MNIST data, cause of it we know what our data include. We can be sure that not all of the feature are independent, the feature which define the outline of the numbers 3 and 8 are dependent with each other what can be misleading.
+
+
+```{r}
+naive_mean <- apply(train4000[,-718],1,mean)
+naive_sd <- apply(train4000[,-718],1,sd)
+naive_incorecct_ouylier <- incorrectly_naive_bayes[,-718]
+naive_incorecct_ouylier <- sweep(naive_incorecct_ouylier,2,naive_mean)
+naive_incorecct_ouylier <- sweep(naive_incorecct_ouylier,2,naive_sd, '/')
+```
+
+```{r}
+f1 <- which(c(abs(naive_incorecct_ouylier[1,]) > 1.95) == TRUE )
+f2 <- which(c(abs(naive_incorecct_ouylier[2,]) > 1.95) == TRUE )
+f3 <- which(c(abs(naive_incorecct_ouylier[3,]) > 1.95) == TRUE )
+f4 <- which(c(abs(naive_incorecct_ouylier[4,]) > 1.95) == TRUE )
 
 ```
 
@@ -239,7 +261,26 @@ classifiers to work well on this image? Why or why not?
 [Hint: Think how would this image be coded into numbers? what would happen if you try to classify
 using your method?]
 
-```{r}
 
+For simplifying how the the number will be coded: Lets take the mean of each feature,with y = 3.
+our new picture will be coded for every feature in the area of (255 - E(feature|Y = 3)).
+There can be errors, but that only for the example.
+
+The first classifier: Naive bayes might predict right ?
+The second classifier: Gradient boosting will probably predict wrong, we need to remember that that classifier learning on trees, and in this case we will almost always take the wrong turn in the cross section.
+
+```{r}
+y3 <- train4000 %>% filter(y == 'X3')
+y3 <- apply(y3[,-718],2,mean)
+y3 <- 255 - y3
+y3 <- t(as.data.frame(y3))
 ```
+
+```{r}
+predict(naive_bayes_model,y3)
+predict(gbm_model_hyperparmeters,y3)
+```
+
+
+
 
