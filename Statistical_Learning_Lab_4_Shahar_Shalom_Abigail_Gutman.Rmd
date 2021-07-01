@@ -11,13 +11,9 @@ options(scipen = 999)
 library(ggplot2)
 library(dplyr)
 library(tidyverse)
-library(readr)
-library(readxl)
-library(glmnet)
 library(grid)
 library(gridExtra)
 library(cowplot)
-library(xgboost)
 library(caret)
 library(rsample) 
 ```
@@ -105,13 +101,8 @@ test$y  = as.factor(load_label_file("t10k-labels-idx1-ubyte"))
 
 ## Q1:
 
-I’d like you to compare two methods, each from a different classifier family (e.g. Classification trees,
-Bayesian classifiers, linear discriminants, etc). You can use as features the raw pixel values (0 for white
-to 255 for black). 
-Explain your decisions in specifying the penalty and any hyper-parameters, and
-in choosing the threshold.
+compare two methods of classifiers.
 
-נרצה להשוות בין שתי שיטות שונות של קלסיפיקציה, 
 ```{r}
 # use only 4000 for training. train on the same proportion of y
 zero_var <- round(apply(train[,-785],2,var),5)
@@ -134,8 +125,8 @@ test$y <- factor(make.names(test$y))
 ```
 
 ###Model 1 : Naive bayes classifier model
+A generative model that uses the Bayes Law. When 25 distributions are estimated using BOOTSTRAP method for P(X|Y) while P(Y)is estimated on the train. The model chosen on threshold is 0.75 where we get the best balance as can be seen in the ROC graph we built below. Distributions are estimated by using gaussian kernel with h = 0.19 The model is chosen by its accuracy on the train forecasts (later we will examine the accuracy).
 ```{r}
-# estimating G from the data #presntaion 11a # check kernel, and band # non-parmetric
 naive_bayes_model <- train(y ~., data = train4000 ,method = 'naive_bayes',
                            trControl = trainControl(classProbs = TRUE,savePredictions= "final"))
 
@@ -145,12 +136,16 @@ preds_naive_bayes <- predict(naive_bayes_model, newdata = test)
 
 
 ###Model 2 : gardient boosting - classifiar
+
+A model that in every step try to minimize the loss when adding the next tree. we choose the max depth of the tree to 3 to keep it simple and not get over fitting in our model. since we have 4000 train samples we did not use a sub sample to create the model, and use all the rows, but since we have large p we randomly pick 0.6 from the columns to be sampled once for each tree.
+
+The model have been chosen on the accuracy by using cross validation 3 times. (what we could do since the package is efficient). The threshold that been chosen has we can see in the ROC below is the one that is the closest to the left upper corner.
 ```{r}
 
 gbm_model_hyperparmeters <- train(y ~ ., data = train4000, method = 'xgbTree',
                                   trControl = trainControl("cv", number = 3,
                                                            classProbs = TRUE,savePredictions= "final"))
-gbm_model_hyperparmeters$bestTune
+
 ```
 
 ```{r}
@@ -160,9 +155,11 @@ pred_gbm_model <- predict(gbm_model_hyperparmeters,test)
 
 ## Q2:
 
-Write your own function that calculates (a) the confusion matrix (b) the precision and (c) the recall
-(assume the class 3 is positive). Calculate the values for both classifiers. Do you observe overfitting of
-the classifier?
+The next function calculate:
+(a) the confusion matrix
+(b) the precision - the proportion of True Positive from what the model predict as positive.
+(c) the recall - the proportion of True Positive from classified as positive (True positive and False Negative).
+(d) JacardIndex 
 
 ```{r}
 confusion_matrix_fun <- function(Y,Yhat){
@@ -184,11 +181,9 @@ confusion_matrix_fun <- function(Y,Yhat){
   Pr <- confus[2,2] / sum(confus[,2])
   Re <- confus[2,2] / sum(confus[2,])
   Ja <- confus[2,2] / (confus[1,2] + confus[1,1] + confus[2,1])
-  Se <- confus[2,2] / (confus[2,2] + confus[2,1]) # TP / TP+FN
-  sp <- confus[1,1] / (confus[1,1] + confus[1,2]) # TN/ TN+FP
+
   
-  return(list(confusion = confus ,Sensitivity= Se,
-              Specificity=sp, precision = Pr,recall = Re, JacardIndex = Ja))
+  return(list(confusion = confus,precision = Pr,recall = Re, JacardIndex = Ja))
 }
 
 ```
@@ -205,27 +200,32 @@ confusion_matrix_fun(test$y,preds_naive_bayes)
 
 ## Q3:
 
-Write your own function that draws a response operating curve (ROC). Draw ROCs for both classifiers
+Function that draws a response operating curve (ROC). Draw ROCs for both classifiers
 
 ```{r}
 Roc_plot <- function(model,title){
   t <- thresholder(model, threshold = seq(0,1,by = 0.05))
-  g <- ggplot(t, aes(y = Sensitivity,x = 1-Specificity)) + geom_line() + labs(title = title, subtitle = "Manual computing by intervals of 0.05")
+  g <- ggplot(t, aes(y = Sensitivity,x = 1-Specificity)) + geom_line() + labs(title = title)
   return(g)
 }
-Roc_plot(gbm_model_hyperparmeters,"ROC for Gardient Boosting Model")
+g <-Roc_plot(gbm_model_hyperparmeters,"Gardient Boosting Model")
 ```
 
 ```{r}
+n <- Roc_plot(naive_bayes_model,"Naive bayes Model")
+```
 
-Roc_plot(naive_bayes_model,"ROC for naive bayes Model")
+```{r}
+grid.arrange(g,n, nrow=1, ncol=2,
+             top = textGrob("ROC compering classification models 
+  (treshold intervals of 0.05)",
+                            gp=gpar(fontsize=20, fontface = 2)))
 
 ```
 
 ## Q4:
 
-For one of your classifiers, display four examples that were classified incorrectly. Can you see what
-made these examples hard for the classifier?
+For the second classifier - Gradient boosting model, display four examples that were classified incorrectly. what made these examples hard for the classifier?
 
 ```{r}
 incorrectly_naive_bayes <- sample_n(test[-which(test$y == preds_naive_bayes),],4)
@@ -266,9 +266,9 @@ For simplifying how the the number will be coded: Lets take the mean of each fea
 our new picture will be coded for every feature in the area of (255 - E(feature|Y = 3)).
 There can be errors, but that only for the example.
 
-The first classifier: Naive bayes might predict right ?
-The second classifier: Gradient boosting will probably predict wrong, we need to remember that that classifier learning on trees, and in this case we will almost always take the wrong turn in the cross section.
-
+The first classifier: Naive bayes might predict right since by using a gaussian kernel we allowing symmetry.
+The second classifier: Gradient boosting will probably predict wrong, we need to remember that that classifier learning on trees, and in this case we will almost always take the wrong turn in the cross section (black values where we are looking for white values).
+lets check:
 ```{r}
 y3 <- train4000 %>% filter(y == 'X3')
 y3 <- apply(y3[,-718],2,mean)
