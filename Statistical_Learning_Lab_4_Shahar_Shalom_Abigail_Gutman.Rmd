@@ -2,7 +2,13 @@
 title: "Statistical learning lab 4 - Classification"
 author: 'Abigail Gutman and Shahar Shalom '
 date: "29/6/2021"
-output: html_document
+output:
+  word_document: default
+  html_document:
+    df_print: paged
+subtitle: Lab 3 - Regression
+editor_options:
+  chunk_output_type: inline
 ---
 
 ```{r message=FALSE, warning=FALSE, include=FALSE}
@@ -32,7 +38,7 @@ so first separate the required digits from the training set and the test set. Pl
 from the training set for fitting.
 
 ## prep: 
-```{r}
+```{r,include=FALSE,warning=FALSE,message= FALSE}
 # modification of https://gist.github.com/brendano/39760
 # automatically obtains data from the web
 # creates two data frames, test and train
@@ -40,29 +46,30 @@ from the training set for fitting.
 # can easily train many models using formula `y ~ .` syntax
 
 # download data from http://yann.lecun.com/exdb/mnist/
-download.file("http://yann.lecun.com/exdb/mnist/train-images-idx3-ubyte.gz",
-              "train-images-idx3-ubyte.gz")
-download.file("http://yann.lecun.com/exdb/mnist/train-labels-idx1-ubyte.gz",
-              "train-labels-idx1-ubyte.gz")
-download.file("http://yann.lecun.com/exdb/mnist/t10k-images-idx3-ubyte.gz",
-              "t10k-images-idx3-ubyte.gz")
-download.file("http://yann.lecun.com/exdb/mnist/t10k-labels-idx1-ubyte.gz",
-              "t10k-labels-idx1-ubyte.gz")
+#download.file("http://yann.lecun.com/exdb/mnist/train-images-idx3-ubyte.gz",
+#              "train-images-idx3-ubyte.gz")
+#download.file("http://yann.lecun.com/exdb/mnist/train-labels-idx1-ubyte.gz",
+#              "train-labels-idx1-ubyte.gz")
+#download.file("http://yann.lecun.com/exdb/mnist/t10k-images-idx3-ubyte.gz",
+#              "t10k-images-idx3-ubyte.gz")
+#download.file("http://yann.lecun.com/exdb/mnist/t10k-labels-idx1-ubyte.gz",
+#              "t10k-labels-idx1-ubyte.gz")
 
 # gunzip the files
-R.utils::gunzip("train-images-idx3-ubyte.gz")
-R.utils::gunzip("train-labels-idx1-ubyte.gz")
-R.utils::gunzip("t10k-images-idx3-ubyte.gz")
-R.utils::gunzip("t10k-labels-idx1-ubyte.gz")
+#R.utils::gunzip("train-images-idx3-ubyte.gz")
+#R.utils::gunzip("train-labels-idx1-ubyte.gz")
+#R.utils::gunzip("t10k-images-idx3-ubyte.gz")
+#R.utils::gunzip("t10k-labels-idx1-ubyte.gz")
 
+
+```
+
+```{r,include=FALSE,warning=FALSE,message= FALSE}
 # helper function for visualization
 show_digit = function(arr784, col = gray(12:1 / 12), ...) {
   image(matrix(as.matrix(arr784[-785]), nrow = 28)[, 28:1], col = col, ...)
 }
-```
 
-
-```{r}
 
 # load image files
 load_image_file = function(filename) {
@@ -103,7 +110,7 @@ test$y  = as.factor(load_label_file("t10k-labels-idx1-ubyte"))
 
 compare two methods of classifiers.
 
-```{r}
+```{r, include=FALSE,warning=FALSE,message= FALSE}
 # use only 4000 for training. train on the same proportion of y
 zero_var <- round(apply(train[,-785],2,var),5)
 zero_var <- zero_var != 0
@@ -114,7 +121,7 @@ train <- train[,p] %>% filter(y %in% list(3,8))
 train[1:784,] <- train[1:784,]
 train$y <- as.factor(train$y)
 set.seed(1342)
-train_sampling <- initial_split(train,prop=4000/length(train[,1]), strata="y")
+train_sampling <- initial_split(train,prop=4002/length(train[,1]), strata="y")
 train_sampling$id
 train4000 <- training(train_sampling)
 train4000$y <- factor(make.names(train4000$y))
@@ -126,12 +133,13 @@ test$y <- factor(make.names(test$y))
 
 ###Model 1 : Naive bayes classifier model
 A generative model that uses the Bayes Law. When 25 distributions are estimated using BOOTSTRAP method for P(X|Y) while P(Y)is estimated on the train. The model chosen on threshold is 0.75 where we get the best balance as can be seen in the ROC graph we built below. Distributions are estimated by using gaussian kernel with h = 0.19 The model is chosen by its accuracy on the train forecasts (later we will examine the accuracy).
-```{r}
+```{r,warning=FALSE,message= FALSE}
 naive_bayes_model <- train(y ~., data = train4000 ,method = 'naive_bayes',
                            trControl = trainControl(classProbs = TRUE,savePredictions= "final"))
+```
 
+```{r,include=FALSE,warning=FALSE,message= FALSE}
 preds_naive_bayes <- predict(naive_bayes_model, newdata = test)
-
 ```
 
 
@@ -140,15 +148,14 @@ preds_naive_bayes <- predict(naive_bayes_model, newdata = test)
 A model that in every step try to minimize the loss when adding the next tree. we choose the max depth of the tree to 3 to keep it simple and not get over fitting in our model. since we have 4000 train samples we did not use a sub sample to create the model, and use all the rows, but since we have large p we randomly pick 0.6 from the columns to be sampled once for each tree.
 
 The model have been chosen on the accuracy by using cross validation 3 times. (what we could do since the package is efficient). The threshold that been chosen has we can see in the ROC below is the one that is the closest to the left upper corner.
-```{r}
+```{r,warning=FALSE,message= FALSE,}
 
 gbm_model_hyperparmeters <- train(y ~ ., data = train4000, method = 'xgbTree',
                                   trControl = trainControl("cv", number = 3,
                                                            classProbs = TRUE,savePredictions= "final"))
-
 ```
 
-```{r}
+```{r,include=FALSE,warning=FALSE,message= FALSE}
 pred_gbm_model <- predict(gbm_model_hyperparmeters,test)
 ```
 
@@ -158,10 +165,10 @@ pred_gbm_model <- predict(gbm_model_hyperparmeters,test)
 The next function calculate:
 (a) the confusion matrix
 (b) the precision - the proportion of True Positive from what the model predict as positive.
-(c) the recall - the proportion of True Positive from classified as positive (True positive and False Negative).
+(c) the recall - the proportion of True Positive from what is positive (True positive and False Negative).
 (d) JacardIndex 
 
-```{r}
+```{r,warning=FALSE,message= FALSE}
 confusion_matrix_fun <- function(Y,Yhat){
   Negative_line <- Yhat[which(Y == 'X8')]
   Postive_line <- Yhat[which(Y == 'X3')]
@@ -188,34 +195,43 @@ confusion_matrix_fun <- function(Y,Yhat){
 
 ```
 
-```{r}
+
+#### Gardient Boosting
+```{r,warning=FALSE,message= FALSE}
 #Gardiante boosting No overfiting
 confusion_matrix_fun(test$y,pred_gbm_model)
 ```
 
-```{r}
+#### Naive Bayes
+```{r,warning=FALSE,message= FALSE}
 #Naive bayes # The important class been detcted less
 confusion_matrix_fun(test$y,preds_naive_bayes)
 ```
+
+
+We can't see a strong over fiting in the models. But we can see that for the naive bayes is harder than the Gradient Boosting model to classified the positive.
 
 ## Q3:
 
 Function that draws a response operating curve (ROC). Draw ROCs for both classifiers
 
-```{r}
+```{r,warning=FALSE,message= FALSE}
 Roc_plot <- function(model,title){
   t <- thresholder(model, threshold = seq(0,1,by = 0.05))
   g <- ggplot(t, aes(y = Sensitivity,x = 1-Specificity)) + geom_line() + labs(title = title)
   return(g)
 }
-g <-Roc_plot(gbm_model_hyperparmeters,"Gardient Boosting Model")
 ```
 
-```{r}
+```{r,include=FALSE,warning=FALSE,message= FALSE}
+g <-Roc_plot(gbm_model_hyperparmeters,"Gardient Boosting Model")
+
+
+
 n <- Roc_plot(naive_bayes_model,"Naive bayes Model")
 ```
 
-```{r}
+```{r,include=FALSE,warning=FALSE,message= FALSE}
 grid.arrange(g,n, nrow=1, ncol=2,
              top = textGrob("ROC compering classification models 
   (treshold intervals of 0.05)",
@@ -225,9 +241,9 @@ grid.arrange(g,n, nrow=1, ncol=2,
 
 ## Q4:
 
-For the second classifier - Gradient boosting model, display four examples that were classified incorrectly. what made these examples hard for the classifier?
+For the second classifier - Gradient boosting model, display four examples that were classified incorrectly.
 
-```{r}
+```{r,warning=FALSE,message= FALSE}
 incorrectly_naive_bayes <- sample_n(test[-which(test$y == preds_naive_bayes),],4)
 incorrectly_naive_bayes
 incorrectly_naive_bayes$y
@@ -237,22 +253,6 @@ Naive Bayes classifier assumes the features are independent, the probabilities a
 
 We work on MNIST data, cause of it we know what our data include. We can be sure that not all of the feature are independent, the feature which define the outline of the numbers 3 and 8 are dependent with each other what can be misleading.
 
-
-```{r}
-naive_mean <- apply(train4000[,-718],1,mean)
-naive_sd <- apply(train4000[,-718],1,sd)
-naive_incorecct_ouylier <- incorrectly_naive_bayes[,-718]
-naive_incorecct_ouylier <- sweep(naive_incorecct_ouylier,2,naive_mean)
-naive_incorecct_ouylier <- sweep(naive_incorecct_ouylier,2,naive_sd, '/')
-```
-
-```{r}
-f1 <- which(c(abs(naive_incorecct_ouylier[1,]) > 1.95) == TRUE )
-f2 <- which(c(abs(naive_incorecct_ouylier[2,]) > 1.95) == TRUE )
-f3 <- which(c(abs(naive_incorecct_ouylier[3,]) > 1.95) == TRUE )
-f4 <- which(c(abs(naive_incorecct_ouylier[4,]) > 1.95) == TRUE )
-
-```
 
 ## Q5:
 
@@ -269,14 +269,14 @@ There can be errors, but that only for the example.
 The first classifier: Naive bayes might predict right since by using a gaussian kernel we allowing symmetry.
 The second classifier: Gradient boosting will probably predict wrong, we need to remember that that classifier learning on trees, and in this case we will almost always take the wrong turn in the cross section (black values where we are looking for white values).
 lets check:
-```{r}
+```{r,include=FALSE,warning=FALSE,message= FALSE}
 y3 <- train4000 %>% filter(y == 'X3')
 y3 <- apply(y3[,-718],2,mean)
 y3 <- 255 - y3
 y3 <- t(as.data.frame(y3))
 ```
 
-```{r}
+```{r,warning=FALSE,message= FALSE}
 predict(naive_bayes_model,y3)
 predict(gbm_model_hyperparmeters,y3)
 ```
