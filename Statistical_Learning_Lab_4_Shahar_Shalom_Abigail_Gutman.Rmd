@@ -241,12 +241,13 @@ grid.arrange(g,n, nrow=1, ncol=2,
 
 ## Q4:
 
-For the second classifier - Gradient boosting model, display four examples that were classified incorrectly.
+For the second classifier - Gradient boosting model, display four examples (displying sample number) that were classified incorrectly.
 
 ```{r,warning=FALSE,message= FALSE}
-incorrectly_naive_bayes <- sample_n(test[-which(test$y == preds_naive_bayes),],4)
-incorrectly_naive_bayes
-incorrectly_naive_bayes$y
+incorrectly_naive_bayes <- test[-which(test$y == preds_naive_bayes),]
+incorrectly_naive_bayes <- incorrectly_naive_bayes[1:4,]
+
+row.names(incorrectly_naive_bayes)
 ```
 
 Naive Bayes classifier assumes the features are independent, the probabilities are incorrect if this assumption is not correct.
